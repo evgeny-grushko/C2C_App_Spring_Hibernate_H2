@@ -1,5 +1,7 @@
 package com.yevhen.hrushko.controller;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -33,10 +35,11 @@ public class Controller {
         try {
             List<EventModel> events = new ArrayList<>();
 
-            if (eventName == null)
-                repository.findAll().forEach(events::add);
-            else
-                repository.findByEventNameContainingIgnoreCase(eventName).forEach(events::add);
+            if (eventName == null) {
+                repository.findAll().stream().limit(1000).forEach(events::add);
+            } else {
+                repository.findByEventNameContainingIgnoreCase(eventName).stream().limit(1000).forEach(events::add);
+            }
 
             if (events.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -47,6 +50,8 @@ public class Controller {
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
 
     @GetMapping("/events/{id}")
     public ResponseEntity<EventModel> getEventById(@PathVariable("id") long id) {
@@ -61,12 +66,25 @@ public class Controller {
 
     @PostMapping("/events")
     public ResponseEntity<EventModel> putEvent(@RequestBody EventModel eventModel) {
+
+        try {
+            // Delete old data, calculate the cutoff time as 30 days ago
+            Instant cutoffTime = Instant.now().minus(Duration.ofDays(30));
+            repository.deleteByTimeBefore(cutoffTime);
+        } catch (Exception e) {
+            System.out.println("Eception: " + e.getMessage());
+            System.out.println("Eception: " + e.getCause());
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
         try {
             EventModel controller = repository.save(new EventModel(eventModel.getEventName(), eventModel.getOwnerId(), eventModel.getAssetId(),
                     eventModel.getValue(), eventModel.getStart(), eventModel.getEnd(), eventModel.getCreatedOn(), eventModel.getConfidence(),
                     eventModel.getEnv()));
             return new ResponseEntity<>(controller, HttpStatus.CREATED);
         } catch (Exception e) {
+            System.out.println("Eception: " + e.getMessage());
+            System.out.println("Eception: " + e.getCause());
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -100,6 +118,8 @@ public class Controller {
             repository.deleteById(id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (Exception e) {
+            System.out.println("Eception: " + e.getMessage());
+            System.out.println("Eception: " + e.getCause());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -110,6 +130,8 @@ public class Controller {
             repository.deleteAll();
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (Exception e) {
+            System.out.println("Eception: " + e.getMessage());
+            System.out.println("Eception: " + e.getCause());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
@@ -129,6 +151,8 @@ public class Controller {
             }
             return new ResponseEntity<>(events, HttpStatus.OK);
         } catch (Exception e) {
+            System.out.println("Eception: " + e.getMessage());
+            System.out.println("Eception: " + e.getCause());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -147,6 +171,8 @@ public class Controller {
             }
             return new ResponseEntity<>(events, HttpStatus.OK);
         } catch (Exception e) {
+            System.out.println("Eception: " + e.getMessage());
+            System.out.println("Eception: " + e.getCause());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
